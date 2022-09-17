@@ -35,6 +35,8 @@
         "stm32f407xx.h": "c",
         "task.h": "c",
         "stm32f4xx_hal_uart.h": "c",
-        "gpio_module.h": "c"
+        "gpio_module.h": "c",
+        "uart_module.h": "c",
+        "string_view": "c"
     }
 }

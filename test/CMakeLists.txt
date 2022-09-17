@@ -2,8 +2,8 @@ include(GoogleTest)
 
 list(APPEND tests_names "test_gpio_module")
 list(APPEND tests_flags " ")
-# list(APPEND tests_names "test_uart_module")
-# list(APPEND tests_flags " ")
+list(APPEND tests_names "test_uart_module")
+list(APPEND tests_flags " ")
 
 # Declare all tests targets
 list(LENGTH tests_names count)

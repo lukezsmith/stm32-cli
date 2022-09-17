@@ -25,7 +25,7 @@ int main(void)
 {
 	// HAL_Init(); /* HAL library initialization */
 	// UART2_Configuration(); /* Call UART2 initialization define below */
-	// HAL_UART_Transmit(&UART_Handler, (uint8_t *)Message, strlen(Message), 10);
+	HAL_UART_Transmit(&UART_Handler, (uint8_t *)Message, strlen(Message), 10);
 	// while(1)
 	// {
 	// 	 uint8_t buffer[4];
@@ -78,6 +78,10 @@ void prvSetupHardware( void )
 
     // setup GPIO outputs
     prvInitGPIO();
+
+	// setup UART
+	prvInitUART2();
+
 }
 
 
@@ -125,7 +129,7 @@ void vApplicationStackOverflowHook( TaskHandle_t pxTask, char *pcTaskName )
 }
 
 
-void UART2_Configuration(void)
+void prvInitUART2(void)
 {
 	__HAL_RCC_GPIOA_CLK_ENABLE(); /* Enable clock to PORTA - UART2 pins PA2 and PA3 */
 	__HAL_RCC_USART2_CLK_ENABLE(); /* Enable clock to UART2 module */
