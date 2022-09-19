@@ -17,25 +17,12 @@ namespace my
       {
       protected:
       uint32_t virtualUART2;
-      uint32_t virtualRX;
-      uint32_t virtualTX;
         // Code here will be called immediately after the constructor (right
         // before each test).
         void SetUp() override
         {
-          // reset RX/TX buffers (?)
-          // virtualRX = ALL_PINS_OFF;
-          // virtualTX = ALL_PINS_OFF;
-
           // reset UART pins
           virtualUART2 = 0;
-
-          // placeholder message to send
-          char txMessage[] = "Write anything on Serial Terminal\r\n";
-
-          // placeholder message to receive
-          char rxMessage[] = "Hello, World!\r\n";
-          
         }
 
         // Code here will be called immediately after each test (right
@@ -85,18 +72,43 @@ namespace my
         EXPECT_EQ(0x1800, virtualUART2);
       }
 
-      // // Tests that UART_Transmit function places correct message in buffer for TX
-      // TEST_F(UartModuleTest, UART_CorrectMessageInBuffer)
-      // {
+      // Tests that UART_SetStopBit function sets correct stop bit of 0 in CR2
+      TEST_F(UartModuleTest, UART_Set1StopBit)
+      {
+        // UART_Enable(&virtualUART2);
+        UART_SetStopBits(&virtualUART2, 1);
+        EXPECT_EQ(0, virtualUART2);
+      }
 
-      //   EXPECT_EQ(input_filepath, output_filepath);
+      // Tests that UART_SetStopBit function sets correct stop bit of 1.5 in CR2
+      TEST_F(UartModuleTest, UART_Set15StopBit)
+      {
+        UART_SetStopBits(&virtualUART2, 1.5);
+        EXPECT_EQ(0x1800, virtualUART2);
+      }
+
+      // TODO
+      // // Tests that UART_SetBaudRate function sets correct baud rate of 115200
+      // TEST_F(UartModuleTest, UART_Set11520BRR)
+      // {
+      //   // UART_Enable(&virtualUART2);
+      //   UART_SetBaudRate(&virtualUART2, 115200);
+      //   EXPECT_EQ(0x1800, virtualUART2);
       // }
 
-      // // Tests that Foo does Xyz.
-      // TEST_F(UartModuleTest, DoesXyz)
-      // {
-      //   // Exercises the Xyz feature of Foo.
-      // }
+      // Tests that UART_Transmit stores the correct message
+      TEST_F(UartModuleTest, UART_SetCorrectTxBuffer)
+      {
+        UART_Transmit(&virtualUART2, 'W');
+        EXPECT_EQ(0x57, virtualUART2);
+      }
+      // Tests that UART_Read reads the correct message
+      TEST_F(UartModuleTest, UART_ReadCorrectMessage)
+      {
+        uint32_t virtualRx = 'W';
+        UART_Receive(&virtualRx);
+        EXPECT_EQ(0x57, virtualRx);
+      }
 
     } // namespace
   }   // namespace project
