@@ -35,8 +35,22 @@ namespace my
       TEST_F(UartModuleTest, UART_EnableUART2)
       {
         UART_Enable(&virtualUART2);
-        EXPECT_EQ(0x1000, virtualUART2);
+        EXPECT_EQ(0x2000, virtualUART2);
       }
+      // Tests enabling of RX in USARTx_CR1 
+      TEST_F(UartModuleTest, UART_EnableRX)
+      {
+        UART_EnableRX(&virtualUART2);
+        EXPECT_EQ(4, virtualUART2);
+      }
+
+      // Tests enabling of TX in USARTx_CR1 
+      TEST_F(UartModuleTest, UART_EnableTX)
+      {
+        UART_EnableTX(&virtualUART2);
+        EXPECT_EQ(8, virtualUART2);
+      }
+
 
       // Tests that UART_SetWordLength function sets correct word length of 8
       TEST_F(UartModuleTest, UART_Set8WordLength)
@@ -69,7 +83,7 @@ namespace my
       {
         UART_Enable(&virtualUART2);
         UART_SetWordLength(&virtualUART2, 9);
-        EXPECT_EQ(0x1800, virtualUART2);
+        EXPECT_EQ(0x2800, virtualUART2);
       }
 
       // Tests that UART_SetStopBit function sets correct stop bit of 0 in CR2
@@ -87,13 +101,11 @@ namespace my
         EXPECT_EQ(0x1800, virtualUART2);
       }
 
-      // TODO
-      // // Tests that UART_SetBaudRate function sets correct baud rate of 115200
-      // TEST_F(UartModuleTest, UART_Set11520BRR)
+      // // Tests that  ART_Config correctly sets UE bit in 
+      // TEST_F(UartModuleTest, UART_ConfigTest)
       // {
-      //   // UART_Enable(&virtualUART2);
-      //   UART_SetBaudRate(&virtualUART2, 115200);
-      //   EXPECT_EQ(0x1800, virtualUART2);
+      //   UART_Config(&virtualUART2);
+      //   EXPECT_EQ(0x57, virtualRx);
       // }
 
       // Tests that UART_Transmit stores the correct message
@@ -109,6 +121,7 @@ namespace my
         UART_Receive(&virtualRx);
         EXPECT_EQ(0x57, virtualRx);
       }
+
 
     } // namespace
   }   // namespace project

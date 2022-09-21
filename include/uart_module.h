@@ -1,13 +1,36 @@
 #include <stdint.h>
 
-// #define uint32_t UART_STOP_BITS_1    0x0;
-// #define uint32_t UART_STOP_BITS_0_5  0x1;
-// #define uint32_t UART_STOP_BITS_2    0x2;
-// #define uint32_t 
+// Stop bit values
+#define UART_STOP_BITS_1       (uint32_t) 0
+#define UART_STOP_BITS_0_5     (uint32_t) 1
+#define UART_STOP_BITS_2       (uint32_t) 2
+#define UART_STOP_BITS_1_5     (uint32_t) 3
 
-void UART_Enable(uint32_t * uartAddress);
-void UART_SetWordLength(uint32_t * uartBaseAddress, int length);
-void UART_SetStopBits(uint32_t * uartBaseAddress, double length);
-void UART_SetBaudRate(uint32_t *uartBaseAddress, int baudRate);
-void UART_Transmit(uint32_t *uartBaseAddress, uint8_t message);
-uint32_t UART_Receive(uint32_t *uartBaseAddress);
+// Baud rate constants
+#define UART_CLOCK_SPEED   (uint32_t) 42000000
+
+// USARTDIV = 72MHz / (16 * Baud Rate)
+// Ex: 115200
+// 72MHz / (16 * 115200) = 22.786
+// Mantissa = 22
+// Fractional = 0.786 * 16 = 12.576 = 13
+#define UART_BDD_FRACTION_LOW_SPEED  (uint32_t) 11
+#define UART_BDD_MANTISSA_LOW_SPEED  (uint32_t) 8
+#define UART_BDD_FRACTION_VERY_HIGH_SPEED  (uint32_t) 5
+#define UART_BDD_MANTISSA_VERY_HIGH_SPEED  (uint32_t) 195
+
+// USART CR1 Register offset
+#define UART_CR1_OFFSET (uint32_t) 0x0C
+#define UART_CR2_OFFSET (uint32_t) 0x10
+#define UART_BRR_OFFSET (uint32_t) 0x08
+#define UART_DR_OFFSET  (uint32_t) 0x04
+
+void UART_Init(volatile uint32_t *uartBaseAddress, int wordLength, float numStopBits, int baudRate);
+void UART_Enable(volatile uint32_t * uartAddress);
+void UART_EnableRX(volatile uint32_t *uartBaseAddress);
+void UART_EnableTX(volatile uint32_t *uartBaseAddress);
+void UART_SetWordLength(volatile uint32_t * uartBaseAddress, int length);
+void UART_SetStopBits(volatile uint32_t * uartBaseAddress, float length);
+void UART_SetBaudRate(volatile uint32_t *uartBaseAddress, int baudRate);
+void UART_Transmit(volatile uint32_t *uartBaseAddress, uint8_t message);
+uint32_t UART_Receive(volatile uint32_t *uartBaseAddress);

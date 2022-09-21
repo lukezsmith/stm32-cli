@@ -5,6 +5,8 @@
 #include "stm32f4xx_hal_uart.h"
 #include "task.h"
 #include "gpio_module.h"
+#include "uart_module.h"
+
 
 
 /*Function prototype for delay and UART2 configuration functions */
@@ -15,17 +17,53 @@ int main(void);
 static void prvSetupHardware( void );
 static void prvInitGPIO( void );
 void ledBlinkTask ( void *p );
+void UART2_SendChar (char c);
+uint8_t UART2_GetChar (void);
 
 TaskHandle_t ledBlinkTaskHandle = NULL;
 
 UART_HandleTypeDef UART_Handler; /*Create UART_HandleTypeDef struct instance */
 char Message[] = "Write anything on Serial Terminal\r\n"; /* Message to be transmitted through UART */
 
+uint8_t buffer[30];
+int indx = 0;
+void UART2_SendChar (char c)
+{
+	/*********** STEPS FOLLOWED *************
+	
+	1. Write the data to send in the USART_DR register (this clears the TXE bit). Repeat this
+		 for each data to be transmitted in case of single buffer.
+	2. After writing the last data into the USART_DR register, wait until TC=1. This indicates
+		 that the transmission of the last frame is complete. This is required for instance when
+		 the USART is disabled or enters the Halt mode to avoid corrupting the last transmission.
+	
+	****************************************/
+
+	USART2->DR = c;   // LOad the Data
+	while (!(USART2->SR & (1<<6)));  // Wait for TC to SET.. This indicates that the data has been transmitted
+}
+
+
+uint8_t UART2_GetChar (void)
+{
+		/*********** STEPS FOLLOWED *************
+	
+	1. Wait for the RXNE bit to set. It indicates that the data has been received and can be read.
+	2. Read the data from USART_DR  Register. This also clears the RXNE bit
+	
+	****************************************/
+	uint8_t Temp;
+	
+	while (!(USART2->SR & (1<<5)));  // Wait for RXNE to SET.. This indicates that the data has been Received
+	Temp = USART2->DR;  // Read the data. 
+	return Temp;
+}
+
 int main(void)
 {
 	// HAL_Init(); /* HAL library initialization */
 	// UART2_Configuration(); /* Call UART2 initialization define below */
-	HAL_UART_Transmit(&UART_Handler, (uint8_t *)Message, strlen(Message), 10);
+	// HAL_UART_Transmit(&UART_Handler, (uint8_t *)Message, strlen(Message), 10);
 	// while(1)
 	// {
 	// 	 uint8_t buffer[4];
@@ -36,13 +74,34 @@ int main(void)
 	// Setup hardware 
     prvSetupHardware();
 
+	UART_Transmit(&USART2->DR, 'H');
+	// UART_Transmit(&USART2->DR, 'e');
+	// UART_Transmit(&USART2->DR, 'l');
+	// UART_Transmit(&USART2->DR, 'l');
+	// UART_Transmit(&USART2->DR, 'o');
+	// UART_Transmit(&USART2->DR, '!');
+	while(1)
+	{
+		int c = UART2_GetChar();
+		UART2_SendChar (c);
+		// UART_Transmit(&USART2->DR, 'H');
+		// USART2->DR = 'H';
+		// delay (100000000);
+		// Delay_ms(100);
+
+
+	// 	 uint8_t buffer[4];
+    //  HAL_UART_Receive(&UART_Handler, buffer, sizeof(buffer), HAL_MAX_DELAY);
+    //  HAL_UART_Transmit(&UART_Handler, buffer, sizeof(buffer), HAL_MAX_DELAY);
+	}
+
     // create tasks
-    xTaskCreate(ledBlinkTask, "LED", configMINIMAL_STACK_SIZE, (void *) NULL, tskIDLE_PRIORITY, &ledBlinkTaskHandle);
+    // xTaskCreate(ledBlinkTask, "LED", configMINIMAL_STACK_SIZE, (void *) NULL, tskIDLE_PRIORITY, &ledBlinkTaskHandle);
 
-    // start scheduler
-    vTaskStartScheduler();
+    // // start scheduler
+    // vTaskStartScheduler();
 
-    for ( ;; );
+    // for ( ;; );
 }
 
 void ledBlinkTask ( void *p )
@@ -58,30 +117,47 @@ void ledBlinkTask ( void *p )
     }
 }
 
-void prvInitGPIO( void )
+void prvInitClocks( void )
 {
-	GPIO_InitTypeDef GPIOD_Params; // Initilisation structure for GPIOD Settings
-	
-	__HAL_RCC_GPIOD_CLK_ENABLE(); // Turn on Clock of GPIOD
-	
-	// Configure the GPIO Pins 12, 13, 14 and 15 used for LEDs
-	GPIOD_Params.Pin = GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15; // Select pins 12 to 15
-	GPIOD_Params.Mode = GPIO_MODE_OUTPUT_PP; // Set pins to push pull output mode
-	GPIOD_Params.Speed = GPIO_SPEED_LOW; // Set low output speed
-	HAL_GPIO_Init(GPIOD, &GPIOD_Params); // Initialise GPIOD according to parameters on GPIOD_Params
+	// Enable Clock for GPIOD (bit 3)
+	RCC->AHB1ENR |= (1 << 3);
+
+	// Enable Clock for GPIOA (bit 3)
+	RCC->AHB1ENR |= (1 << 0);
+
+	// Enable clock for USART2
+	// RCC->APB1ENR |= RCC_APB1ENR_USART2EN
+	RCC->APB1ENR |= (1 << 17);
+
+}
+
+void prvInitGPIO( void )
+{	
+	// init LED GPIOD Pins 12-15
+	GPIO_Init(GPIOD, 12, GPIO_MODE_OUTPUT, GPIO_SPEED_LOW);
+	GPIO_Init(GPIOD, 13, GPIO_MODE_OUTPUT, GPIO_SPEED_LOW);
+	GPIO_Init(GPIOD, 14, GPIO_MODE_OUTPUT, GPIO_SPEED_LOW);
+	GPIO_Init(GPIOD, 15, GPIO_MODE_OUTPUT, GPIO_SPEED_LOW);
+
+	// init UART Pins
+	GPIO_Init(GPIOA, 2, GPIO_MODE_AF, GPIO_SPEED_LOW);
+	GPIO_Init(GPIOA, 3, GPIO_MODE_AF, GPIO_SPEED_LOW);
+
+	// Set Alternate function low register for pins 2,3 
+	GPIO_SetPortAF(&GPIOA->AFR[0], 7, 2);
+	GPIO_SetPortAF(&GPIOA->AFR[0], 7, 3);
 }
 
 void prvSetupHardware( void )
-{
-    // setup STM32 clock, PLL and Flash
-    SystemInit();
+{	
+	// Setup clocks
+	prvInitClocks();
 
     // setup GPIO outputs
     prvInitGPIO();
 
 	// setup UART
-	prvInitUART2();
-
+	prvInitUART();
 }
 
 
@@ -128,27 +204,15 @@ void vApplicationStackOverflowHook( TaskHandle_t pxTask, char *pcTaskName )
 	for( ;; );
 }
 
-
-void prvInitUART2(void)
+void prvInitUART(void)
 {
-	__HAL_RCC_GPIOA_CLK_ENABLE(); /* Enable clock to PORTA - UART2 pins PA2 and PA3 */
-	__HAL_RCC_USART2_CLK_ENABLE(); /* Enable clock to UART2 module */
+	// USART2->CR1 = 0x00;   // Clear ALL
+	// Init UART2 with 8 length word, 0 stop bits and 11520 Baud Rate
+	UART_Init(USART2, 8, 0, 11520);
 	
-	GPIO_InitTypeDef UART2_GPIO_Handler; /*Create GPIO_InitTypeDef struct instance */
-	UART2_GPIO_Handler.Pin = GPIO_PIN_2 | GPIO_PIN_3; 
-	UART2_GPIO_Handler.Mode = GPIO_MODE_AF_PP;
-	UART2_GPIO_Handler.Pull = GPIO_PULLUP;
-	UART2_GPIO_Handler.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-	UART2_GPIO_Handler.Alternate = GPIO_AF7_USART2;
-	HAL_GPIO_Init(GPIOA, &UART2_GPIO_Handler);
-	//UART Configuration
-	UART_Handler.Instance = USART2;
-	UART_Handler.Init.BaudRate = 115200;
-	UART_Handler.Init.Mode = UART_MODE_TX_RX;
-	UART_Handler.Init.WordLength = UART_WORDLENGTH_8B;
-	UART_Handler.Init.StopBits = UART_STOPBITS_1;
-	UART_Handler.Init.OverSampling = UART_OVERSAMPLING_16;
-	HAL_UART_Init(&UART_Handler);	
+	// Enable RX, TX
+	UART_EnableRX(&USART2->CR1);
+	UART_EnableTX(&USART2->CR1);
 }
 
 // void SysTick_Handler(void)

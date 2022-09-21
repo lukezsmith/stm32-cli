@@ -34,6 +34,28 @@ namespace my
         }
       };
 
+      // Tests that the correct mode is set on specified GPIO bit
+      TEST_F(GPIOModuleTest, GPIO_SetPin15ToOutput)
+      {
+        GPIO_SetPortMode(&virtualGPIOs, GPIO_MODE_OUTPUT, 15 );
+        EXPECT_EQ((GPIO_MODE_OUTPUT << 2 * 15), (virtualGPIOs));
+      }
+
+      // Tests that the correct speed is set on specified GPIO bit
+      TEST_F(GPIOModuleTest, GPIO_SetPin15ToHighSpeed)
+      {
+        GPIO_SetPortSpeed(&virtualGPIOs, GPIO_SPEED_HIGH, 15);
+        EXPECT_EQ((GPIO_SPEED_HIGH << 2 * 15), (virtualGPIOs));
+      }      
+
+      // Tests that the pin 1 is correctly set to AF1
+      TEST_F(GPIOModuleTest, GPIO_SetPin1AF)
+      {
+        GPIO_SetPortAF(&virtualGPIOs, 1, 1);
+        EXPECT_EQ(16, (virtualGPIOs));
+      }     
+
+
       // Tests that the selected GPIO bit is 1 after writing
       TEST_F(GPIOModuleTest, GPIO_TurnOnBitTwelve)
       {

@@ -1,27 +1,42 @@
 #include "uart_module.h"
+// #include "stm32f4xx.h"
 
-// Stop bit values
-const uint32_t UART_STOP_BITS_1 =       0;
-const uint32_t UART_STOP_BITS_0_5 =     1;
-const uint32_t UART_STOP_BITS_2 =       2;
-const uint32_t UART_STOP_BITS_1_5 =     3;
+// function to initialise UARTx
+void UART_Init(volatile uint32_t *uartBaseAddress, int wordLength, float numStopBits, int baudRate)
+{
+    // Enable UART
+    UART_Enable((uint32_t*)((uint8_t*)uartBaseAddress + UART_CR1_OFFSET));
 
-// Baud rate constants
-static const uint32_t UART_CLOCK_SPEED = 45000000;
-static const uint32_t UART_BDD_FRACTION = 7;
-static const uint32_t UART_BDD_MANTISSA = 24;
+    // Set word length
+    UART_SetWordLength((uint32_t*)((uint8_t*)uartBaseAddress + UART_CR1_OFFSET), wordLength);
 
+    // Set stop bits
+    UART_SetStopBits((uint32_t*)((uint8_t*)uartBaseAddress + UART_CR2_OFFSET), numStopBits);
+
+    // Set baud rate
+    UART_SetBaudRate((uint32_t*)((uint8_t*)uartBaseAddress + UART_BRR_OFFSET), baudRate);
+}
+
+void UART_EnableRX(volatile uint32_t *uartBaseAddress)
+{
+    *uartBaseAddress |= (1 << 2);
+}
+
+void UART_EnableTX(volatile uint32_t *uartBaseAddress)
+{
+    *uartBaseAddress |= (1 << 3);
+}
 
 static uint16_t convertGPIOPinNumberToBit(int pinNumber)
 {
     return 1 << (pinNumber - 1);
 }
-void UART_Enable(uint32_t *uartBaseAddress)
+void UART_Enable(volatile uint32_t *uartBaseAddress)
 {
-    *uartBaseAddress |= 0x1000;
+    *uartBaseAddress |= (1 << 13);
 }
 
-void UART_SetWordLength(uint32_t *uartBaseAddress, int length)
+void UART_SetWordLength(volatile uint32_t *uartBaseAddress, int length)
 {
     if (length != 8 && length != 9)
         return;
@@ -35,7 +50,7 @@ void UART_SetWordLength(uint32_t *uartBaseAddress, int length)
     }
 }
 
-void UART_SetStopBits(uint32_t *uartBaseAddress, double length)
+void UART_SetStopBits(volatile uint32_t *uartBaseAddress, float length)
 {   
     if (length != 1.0 && length != 0.5 && length != 2.0 
         && length != 1.5 )
@@ -53,21 +68,22 @@ void UART_SetStopBits(uint32_t *uartBaseAddress, double length)
         *uartBaseAddress |= UART_STOP_BITS_1_5 << 11;
 }
 
-void UART_SetBaudRate(uint32_t *uartBaseAddress, int baudRate)
+void UART_SetBaudRate(volatile uint32_t *uartBaseAddress, int baudRate)
 {
     // clear bits
     *uartBaseAddress &= ~0xffff;
 
+
     // set mantissa and fraction BDD bits
-    *uartBaseAddress = (UART_BDD_FRACTION << 0) | (UART_BDD_MANTISSA << 4);
+    *uartBaseAddress = (UART_BDD_FRACTION_LOW_SPEED << 0) | (UART_BDD_MANTISSA_LOW_SPEED << 4);
 
 }
-void UART_Transmit(uint32_t *uartBaseAddress, uint8_t message)
+void UART_Transmit(volatile uint32_t *uartDR, uint8_t message)
 {
-    *uartBaseAddress = message;    
+    *uartDR = message;
 }
 
-uint32_t UART_Receive(uint32_t *uartBaseAddress)
+uint32_t UART_Receive(volatile uint32_t *uartDR)
 {
-    return *uartBaseAddress;
+    return *uartDR;
 }
