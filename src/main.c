@@ -25,74 +25,20 @@ TaskHandle_t ledBlinkTaskHandle = NULL;
 UART_HandleTypeDef UART_Handler; /*Create UART_HandleTypeDef struct instance */
 char Message[] = "Write anything on Serial Terminal\r\n"; /* Message to be transmitted through UART */
 
-uint8_t buffer[30];
-int indx = 0;
-void UART2_SendChar (char c)
-{
-	/*********** STEPS FOLLOWED *************
-	
-	1. Write the data to send in the USART_DR register (this clears the TXE bit). Repeat this
-		 for each data to be transmitted in case of single buffer.
-	2. After writing the last data into the USART_DR register, wait until TC=1. This indicates
-		 that the transmission of the last frame is complete. This is required for instance when
-		 the USART is disabled or enters the Halt mode to avoid corrupting the last transmission.
-	
-	****************************************/
-
-	USART2->DR = c;   // LOad the Data
-	while (!(USART2->SR & (1<<6)));  // Wait for TC to SET.. This indicates that the data has been transmitted
-}
-
-
-uint8_t UART2_GetChar (void)
-{
-		/*********** STEPS FOLLOWED *************
-	
-	1. Wait for the RXNE bit to set. It indicates that the data has been received and can be read.
-	2. Read the data from USART_DR  Register. This also clears the RXNE bit
-	
-	****************************************/
-	uint8_t Temp;
-	
-	while (!(USART2->SR & (1<<5)));  // Wait for RXNE to SET.. This indicates that the data has been Received
-	Temp = USART2->DR;  // Read the data. 
-	return Temp;
-}
-
 int main(void)
 {
-	// HAL_Init(); /* HAL library initialization */
-	// UART2_Configuration(); /* Call UART2 initialization define below */
-	// HAL_UART_Transmit(&UART_Handler, (uint8_t *)Message, strlen(Message), 10);
-	// while(1)
-	// {
-	// 	 uint8_t buffer[4];
-    //  HAL_UART_Receive(&UART_Handler, buffer, sizeof(buffer), HAL_MAX_DELAY);
-    //  HAL_UART_Transmit(&UART_Handler, buffer, sizeof(buffer), HAL_MAX_DELAY);
-	// }
-
 	// Setup hardware 
     prvSetupHardware();
 
-	UART_Transmit(&USART2->DR, 'H');
-	// UART_Transmit(&USART2->DR, 'e');
-	// UART_Transmit(&USART2->DR, 'l');
-	// UART_Transmit(&USART2->DR, 'l');
-	// UART_Transmit(&USART2->DR, 'o');
-	// UART_Transmit(&USART2->DR, '!');
+	// Greeting message
+	UART_TransmitString(USART2, "Hello!\r\n");
+	
+	// UART Polling
 	while(1)
 	{
-		int c = UART2_GetChar();
-		UART2_SendChar (c);
-		// UART_Transmit(&USART2->DR, 'H');
-		// USART2->DR = 'H';
-		// delay (100000000);
-		// Delay_ms(100);
+		char c = UART_Receive(USART2);
+		UART_Transmit(USART2, c);
 
-
-	// 	 uint8_t buffer[4];
-    //  HAL_UART_Receive(&UART_Handler, buffer, sizeof(buffer), HAL_MAX_DELAY);
-    //  HAL_UART_Transmit(&UART_Handler, buffer, sizeof(buffer), HAL_MAX_DELAY);
 	}
 
     // create tasks

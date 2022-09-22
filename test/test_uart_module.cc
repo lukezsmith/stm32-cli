@@ -3,6 +3,7 @@
 extern "C"
 {
 #include "uart_module.h"
+#include "test_uart_module.h"
 }
 
 namespace my
@@ -23,6 +24,7 @@ namespace my
         {
           // reset UART pins
           virtualUART2 = 0;
+          // (virtualUART2 | UART_SR_OFFSET) = 0xffff;
         }
 
         // Code here will be called immediately after each test (right
@@ -111,15 +113,16 @@ namespace my
       // Tests that UART_Transmit stores the correct message
       TEST_F(UartModuleTest, UART_SetCorrectTxBuffer)
       {
+        virtualUART2 = (1 << 6);
         UART_Transmit(&virtualUART2, 'W');
-        EXPECT_EQ(0x57, virtualUART2);
+        EXPECT_EQ((1 << 6), virtualUART2);
       }
       // Tests that UART_Read reads the correct message
       TEST_F(UartModuleTest, UART_ReadCorrectMessage)
       {
-        uint32_t virtualRx = 'W';
+        uint32_t virtualRx = (1 << 5);
         UART_Receive(&virtualRx);
-        EXPECT_EQ(0x57, virtualRx);
+        EXPECT_EQ((1 << 5), virtualRx);
       }
 
 
