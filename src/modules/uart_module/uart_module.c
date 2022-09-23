@@ -27,6 +27,18 @@ void UART_EnableTX(volatile uint32_t *uartBaseAddress)
     *uartBaseAddress |= (1 << 3);
 }
 
+void UART_EnableRXNEIE(volatile uint32_t *uartBaseAddress)
+{
+    *uartBaseAddress |= (1 << 5);
+}
+
+void UART_EnableTXEIE(volatile uint32_t *uartBaseAddress)
+{
+    *uartBaseAddress |= (1 << 7);
+}
+
+
+
 static uint16_t convertGPIOPinNumberToBit(int pinNumber)
 {
     return 1 << (pinNumber - 1);

@@ -103,6 +103,20 @@ namespace my
         EXPECT_EQ(0x1800, virtualUART2);
       }
 
+      // Tests that UART_EnableRXNEIE function sets correct bit in CR1
+      TEST_F(UartModuleTest, UART_EnableRXNEIE)
+      {
+        UART_EnableRXNEIE(&virtualUART2);
+        EXPECT_EQ(32, virtualUART2);
+      }
+
+      // Tests that UART_EnableTXEIE function sets correct bit in CR1
+      TEST_F(UartModuleTest, UART_EnableTXEIE)
+      {
+        UART_EnableTXEIE(&virtualUART2);
+        EXPECT_EQ(128, virtualUART2);
+      }
+
       // // Tests that  ART_Config correctly sets UE bit in 
       // TEST_F(UartModuleTest, UART_ConfigTest)
       // {

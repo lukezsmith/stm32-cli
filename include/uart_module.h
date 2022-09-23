@@ -35,6 +35,8 @@ void UART_Init(volatile uint32_t *uartBaseAddress, int wordLength, float numStop
 void UART_Enable(volatile uint32_t * uartAddress);
 void UART_EnableRX(volatile uint32_t *uartBaseAddress);
 void UART_EnableTX(volatile uint32_t *uartBaseAddress);
+void UART_EnableRXNEIE(volatile uint32_t *uartBaseAddress);
+void UART_EnableTXEIE(volatile uint32_t *uartBaseAddress);
 void UART_SetWordLength(volatile uint32_t * uartBaseAddress, int length);
 void UART_SetStopBits(volatile uint32_t * uartBaseAddress, float length);
 void UART_SetBaudRate(volatile uint32_t *uartBaseAddress, int baudRate);
