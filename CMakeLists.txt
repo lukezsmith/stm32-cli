@@ -31,7 +31,7 @@ set(RTOS_PORTABLE ARM_CM4F)
 add_subdirectory(src/modules)
 
 # Production build
-if(CMAKE_BUILD_TYPE STREQUAL release)
+if(NOT TEST_MODE)
     #  -------- Collate Code Sources --------
     file(GLOB_RECURSE PROJECT_SOURCES "${PROJECT_DIR}/*.c")
     file(GLOB FREERTOS_SOURCES ${RTOS_PATH}/*.c)
@@ -93,7 +93,42 @@ if(CMAKE_BUILD_TYPE STREQUAL release)
     )    
     
     #  -------- Compilation configuration --------
-    target_compile_options(${EXECUTABLE} PRIVATE
+    if (CMAKE_BUILD_TYPE STREQUAL Debug)
+        target_compile_options(${EXECUTABLE} PRIVATE
+            ${CPU_PARAMETERS}
+                -DUSE_HAL_DRIVER 
+                -DSTM32F407xx
+                -std=gnu11
+                -Wall
+                -Wextra
+                -Wpedantic
+                -Wshadow
+                -Wdouble-promotion
+                -Wformat=2 -Wformat-truncation
+                -Wmissing-include-dirs
+                -Wsign-compare
+                -Wundef
+                # -Wcast-align
+                # -Wconversion
+                -fno-common
+                -fsingle-precision-constant
+                -fomit-frame-pointer
+                -ffunction-sections 
+                -fdata-sections
+                -Wno-unused-parameter
+                --specs=nano.specs
+                -Og -g3 -ggdb
+        )
+
+        target_compile_options(FreeRTOS PRIVATE
+            ${CPU_PARAMETERS}
+            -Wall -Wextra -Wundef -Wshadow -Wredundant-decls
+            -fno-common -ffunction-sections -fdata-sections -MD
+            -Og -g3 -ggdb
+        )
+
+    else()
+        target_compile_options(${EXECUTABLE} PRIVATE
         ${CPU_PARAMETERS}
             -DUSE_HAL_DRIVER 
             -DSTM32F407xx
@@ -116,16 +151,17 @@ if(CMAKE_BUILD_TYPE STREQUAL release)
             -fdata-sections
             -Wno-unused-parameter
             --specs=nano.specs
-            $<$<CONFIG:Debug>:-Og -g3 -ggdb>
-            $<$<CONFIG:Release>:-Og -g0>)
+            -Og -g0
+        )
 
-    target_compile_options(FreeRTOS PRIVATE
-        ${CPU_PARAMETERS}
-        -Wall -Wextra -Wundef -Wshadow -Wredundant-decls
-        -fno-common -ffunction-sections -fdata-sections -MD
-        $<$<CONFIG:Debug>:-Og -g3 -ggdb>
-        $<$<CONFIG:Release>:-Og -g0>
-    )
+        target_compile_options(FreeRTOS PRIVATE
+            ${CPU_PARAMETERS}
+            -Wall -Wextra -Wundef -Wshadow -Wredundant-decls
+            -fno-common -ffunction-sections -fdata-sections -MD
+            -Og -g0
+        )
+    
+    endif()
 
     target_link_options(${EXECUTABLE} PRIVATE
         -T${MCU_LINKER_SCRIPT}

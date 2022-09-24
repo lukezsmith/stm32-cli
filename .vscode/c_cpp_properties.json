@@ -15,7 +15,7 @@
                 "${workspaceFolder}/Drivers/FreeRTOS/include",
                 "${workspaceFolder}/Drivers/FreeRTOS/portable/GCC/ARM_CM4F",
                 "${workspaceFolder}/build/test/_deps/googletest-src/googletest/include",
-                "${workspaceFolder}/mocks",
+                "${workspaceFolder}/test/mocks",
                 "${workspaceFolder}/src/modules/gpio_module"
             ],
             "defines": [
@@ -26,9 +26,7 @@
             "intelliSenseMode": "clang-x64",
             "browse": {
                 "path": [
-                    "${workspaceRoot}/include",
-                    "${workspaceRoot}/libs/CMSIS_5/CMSIS/Core/Include",
-                    "${workspaceRoot}/libs/CMSIS_5/CMSIS/DSP/Include"
+                    "${workspaceRoot}/include"
                 ],
                 "limitSymbolsToIncludedHeaders": true,
                 "databaseFilename": ""

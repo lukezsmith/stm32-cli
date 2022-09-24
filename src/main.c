@@ -44,7 +44,7 @@ int main(void)
 
 	// create tasks
 	xTaskCreate(ledBlinkTask, "LED", configMINIMAL_STACK_SIZE, (void *)NULL, tskIDLE_PRIORITY, &ledBlinkTaskHandle);
-	xTaskCreate(uartTask, "UART", configMINIMAL_STACK_SIZE, (void *)NULL, tskIDLE_PRIORITY, &uartTaskHandle);
+	// xTaskCreate(uartTask, "UART", configMINIMAL_STACK_SIZE, (void *)NULL, tskIDLE_PRIORITY, &uartTaskHandle);
 	// xTaskCreate(uartTaskPolling, "UART", configMINIMAL_STACK_SIZE, (void *)NULL, tskIDLE_PRIORITY, &uartTaskHandle);
 
 	// start scheduler
@@ -259,11 +259,11 @@ void USART2_IRQHandler(void)
 
 		}
 		// Handle UART TX
-		if (USART2->SR & USART_SR_TXE)
-		{
-			txReceived = pdTRUE;
+		// if (USART2->SR & USART_SR_TXE)
+		// {
+		// 	txReceived = pdTRUE;
 
-		}
+		// }
 		portYIELD_FROM_ISR(rxReceived || txReceived);
 }
 

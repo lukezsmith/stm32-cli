@@ -1,24 +1,24 @@
 {
-  "version": "2.0.0",
-  "tasks": [
-      {
-          "label": "msvc build",
-          "type": "shell",
-          "command": "",
-          "args": [
-              "make",
-              "BUILD_TYPE=test",
-          ],
-          "group":  {
-              "kind": "build",
-              "isDefault": true
-          },
-          "presentation": {
-              "reveal":"always",
-              "close": false
-
-          },
-          "problemMatcher": "$msCompile"
-      }
-  ]
-}
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "msvc build",
+            "type": "shell",
+            "command": "",
+            "args": [
+                "make",
+                "TEST_MODE=TRUE",
+            ],
+            "group":  {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal":"always",
+                "close": false
+  
+            },
+            "problemMatcher": "$msCompile"
+        }
+    ]
+  }

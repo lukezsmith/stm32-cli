@@ -38,5 +38,6 @@
         "gpio_module.h": "c",
         "uart_module.h": "c",
         "string_view": "c"
-    }
+    },
+    "cortex-debug.showRTOS": false
 }
