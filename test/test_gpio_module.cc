@@ -37,15 +37,15 @@ namespace my
       // Tests that the correct mode is set on specified GPIO bit
       TEST_F(GPIOModuleTest, GPIO_SetPin15ToOutput)
       {
-        GPIO_SetPortMode(&virtualGPIOs, GPIO_MODE_OUTPUT, 15 );
-        EXPECT_EQ((GPIO_MODE_OUTPUT << 2 * 15), (virtualGPIOs));
+        GPIO_SetPortMode(&virtualGPIOs, GPIO_PORT_MODE_OUTPUT, 15 );
+        EXPECT_EQ((GPIO_PORT_MODE_OUTPUT << 2 * 15), (virtualGPIOs));
       }
 
       // Tests that the correct speed is set on specified GPIO bit
       TEST_F(GPIOModuleTest, GPIO_SetPin15ToHighSpeed)
       {
-        GPIO_SetPortSpeed(&virtualGPIOs, GPIO_SPEED_HIGH, 15);
-        EXPECT_EQ((GPIO_SPEED_HIGH << 2 * 15), (virtualGPIOs));
+        GPIO_SetPortSpeed(&virtualGPIOs, GPIO_PORT_SPEED_HIGH, 15);
+        EXPECT_EQ((GPIO_PORT_SPEED_HIGH << 2 * 15), (virtualGPIOs));
       }      
 
       // Tests that the pin 1 is correctly set to AF1
@@ -143,6 +143,23 @@ namespace my
         GPIO_Reset(&virtualGPIOs, convertGPIOPinNumberToBit(3141));
         EXPECT_EQ(ALL_PINS_ON, virtualGPIOs);
       }    
+
+      // Tests that pin 7 is correctly read as a 1 
+      TEST_F(GPIOModuleTest, GPIO_ReadPin7As1)
+      {
+        virtualGPIOs = 128;
+        int pin = GPIO_Read(&virtualGPIOs, 7);
+        EXPECT_EQ(128, pin);
+      }     
+
+      // // Tests that External Interrupt correctly configured for pin  
+      // TEST_F(GPIOModuleTest, GPIO_ReadPin7As1)
+      // {
+      //   virtualGPIOs = 128;
+      //   int pin = GPIO_Read(&virtualGPIOs, 8);
+      //   EXPECT_EQ(128, pin);
+      // }     
+
 
     } // namespace
   }   // namespace project

@@ -9,16 +9,24 @@
 #define GPIO_OSPEEDR_OFFSET (uint32_t) 0x08
 
 // GPIO Pin Modes
-#define GPIO_MODE_INPUT     (uint32_t) 0
-#define GPIO_MODE_OUTPUT    (uint32_t) 1
-#define GPIO_MODE_AF        (uint32_t) 2
-#define GPIO_MODE_ANALOG    (uint32_t) 3
+#define GPIO_PORT_MODE_INPUT     (uint32_t) 0
+#define GPIO_PORT_MODE_OUTPUT    (uint32_t) 1
+#define GPIO_PORT_MODE_AF        (uint32_t) 2
+#define GPIO_PORT_MODE_ANALOG    (uint32_t) 3
 
 // GPIO Pin Speeds
-#define GPIO_SPEED_LOW          (uint32_t) 0x00
-#define GPIO_SPEED_MEDIUM       (uint32_t) 0x01
-#define GPIO_SPEED_HIGH         (uint32_t) 0x10
-#define GPIO_SPEED_VERY_HIGH    (uint32_t) 0x11
+#define GPIO_PORT_SPEED_LOW          (uint32_t) 0x00
+#define GPIO_PORT_SPEED_MEDIUM       (uint32_t) 0x01
+#define GPIO_PORT_SPEED_HIGH         (uint32_t) 0x10
+#define GPIO_PORT_SPEED_VERY_HIGH    (uint32_t) 0x11
+
+typedef enum
+{
+    RISING_EDGE,
+    FALLING_EDGE, 
+    RISING_FALLING_EDGE
+
+}edge_select;
 
 void GPIO_Init(volatile uint32_t *gpioBaseAddress, int pinNumber, uint32_t mode, uint32_t speed );
 void GPIO_SetPortMode(volatile uint32_t *gpioBaseAddress, uint32_t speed, int pinNumber);
@@ -29,4 +37,5 @@ void GPIO_Reset(volatile uint32_t * gpioAddress,uint32_t pins);
 void GPIO_SetAll(volatile uint32_t * gpioAddress);
 void GPIO_ResetAll(volatile uint32_t * gpioAddress);
 void GPIO_Toggle(volatile uint32_t * gpioAddress, uint32_t pins);
+int GPIO_Read(volatile uint32_t * gpioAddress, int pinNumber);
 uint16_t convertGPIOPinNumberToBit(int pinNumber);

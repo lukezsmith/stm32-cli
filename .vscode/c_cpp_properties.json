@@ -16,7 +16,9 @@
                 "${workspaceFolder}/Drivers/FreeRTOS/portable/GCC/ARM_CM4F",
                 "${workspaceFolder}/build/test/_deps/googletest-src/googletest/include",
                 "${workspaceFolder}/test/mocks",
-                "${workspaceFolder}/src/modules/gpio_module"
+                "${workspaceFolder}/src/modules/gpio_module",
+                "${workspaceFolder}/Drivers/CMSIS/RTOS/Template",
+                "${workspaceFolder}/include/utils"
             ],
             "defines": [
                 "STM32F407xx",

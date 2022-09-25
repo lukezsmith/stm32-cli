@@ -2,12 +2,31 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "msvc build",
+            "label": "Build & Run Tests",
             "type": "shell",
             "command": "",
             "args": [
                 "make",
                 "TEST_MODE=TRUE",
+            ],
+            "group":  {
+                "kind": "test",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal":"always",
+                "close": false
+  
+            },
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "Build Debug Build & Flash",
+            "type": "shell",
+            "command": "",
+            "args": [
+                "make",
+                "make flash"
             ],
             "group":  {
                 "kind": "build",

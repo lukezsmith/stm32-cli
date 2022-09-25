@@ -74,6 +74,7 @@ if(NOT TEST_MODE)
     #  -------- Include dependencies --------
     target_include_directories(${EXECUTABLE} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/utils
     ${HAL_PATH}/Inc
     ${HAL_PATH}/Inc/Legacy
     ${CMSIS_PATH}/Device/ST/STM32F4xx/Include

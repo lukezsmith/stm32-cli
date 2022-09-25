@@ -4,116 +4,262 @@
 #include "stm32f4xx_hal_gpio.h"
 #include "stm32f4xx_hal_uart.h"
 #include "task.h"
+#include "queue.h"
+#include "main.h"
+#include "utils.h"
 #include "gpio_module.h"
 #include "uart_module.h"
 
-/*Function prototype for delay and UART2 configuration functions */
-void UART2_Configuration(void);
-void Delay_ms(volatile int time_ms);
-
-int main(void);
-static void prvSetupHardware(void);
-static void prvInitGPIO(void);
-void ledBlinkTask(void *p);
-void uartTask(void *p);
-void uartTaskPolling(void *p);
-void UART2_SendChar(char c);
-uint8_t UART2_GetChar(void);
-
-TaskHandle_t ledBlinkTaskHandle = NULL;
+TaskHandle_t ledBlinkOnTaskHandle = NULL;
+TaskHandle_t ledLightShowTaskHandle = NULL;
 TaskHandle_t uartTaskHandle = NULL;
+TaskHandle_t menuDisplayTaskHandle = NULL;
+TaskHandle_t uartWriteTaskHandle = NULL;
+TaskHandle_t rxCmdTaskHandle = NULL;
+TaskHandle_t processCmdTaskHandle = NULL;
 
-UART_HandleTypeDef UART_Handler;						  /*Create UART_HandleTypeDef struct instance */
-char Message[] = "Write anything on Serial Terminal\r\n"; /* Message to be transmitted through UART */
+QueueHandle_t uartQueue;
+QueueHandle_t cmdQueue;
+
+uint8_t cmdBuffer[20];
+uint8_t cmdLen = 0;
+uint8_t byte = 0;
+
+int uartQueueItemSize = 300;
+int cmdQueueItemSize = 10;
+
+uint16_t buttonPressed = 3;
+uint16_t buttonPressed_0 = 0;
+uint16_t buttonPressed_1 = 0;
+uint16_t statoButtonPressed = 3;
+
+// Menu string to display menu to user
+char menu[] = {"\
+\r\n============ stm32-cli ============\
+\r\nLED ON		             ----> 1\
+\r\nLED OFF		             ----> 2\
+\r\nLED BLINK ON		     ----> 3\
+\r\nLED BLINK OFF		     ----> 4\
+\r\nLED LIGHT SHOW ON	     ----> 5\
+\r\nLED LIGHT SHOW OFF	     ----> 6\
+\r\nOr, press button for IMU data.\
+\r\n\nType your option here: "};
 
 int main(void)
 {
 	// Setup hardware
 	prvSetupHardware();
 
-	// Greeting message
-	// UART_TransmitString(USART2, "Hello!\r\n");
-
-	// UART Polling
-	// while(1)
-	// {
-	// 	// char c = UART_Receive(USART2);
-	// 	// UART_Transmit(USART2, c);
-
-	// }
+	// create queues
+	uartQueue = xQueueCreate(10, uartQueueItemSize);
+	cmdQueue = xQueueCreate(10, sizeof(char));
 
 	// create tasks
-	xTaskCreate(ledBlinkTask, "LED", configMINIMAL_STACK_SIZE, (void *)NULL, tskIDLE_PRIORITY, &ledBlinkTaskHandle);
-	// xTaskCreate(uartTask, "UART", configMINIMAL_STACK_SIZE, (void *)NULL, tskIDLE_PRIORITY, &uartTaskHandle);
-	// xTaskCreate(uartTaskPolling, "UART", configMINIMAL_STACK_SIZE, (void *)NULL, tskIDLE_PRIORITY, &uartTaskHandle);
+	// Priority 0 to enqueue menu first
+	xTaskCreate(menuDisplayTask, "MENU", configMINIMAL_STACK_SIZE, (void *)NULL, 1, &menuDisplayTaskHandle);
+	xTaskCreate(rxCmdTask, "RXCMD", configMINIMAL_STACK_SIZE, (void *)NULL, 2, &rxCmdTaskHandle);
+	xTaskCreate(processCmdTask, "PROCESSCMD", configMINIMAL_STACK_SIZE, (void *)NULL, 2, &processCmdTaskHandle);
+	xTaskCreate(uartWriteTask, "UART", configMINIMAL_STACK_SIZE, (void *)NULL, 2, &uartWriteTaskHandle);
 
 	// start scheduler
 	vTaskStartScheduler();
 
-	// for (;;)
-	// 	;
-	while(1);
-	return 0;
+	for (;;);
 }
 
 // Tasks
 
-void ledBlinkTask(void *p)
+// Enqueues menu string to UART transmit buffer
+void menuDisplayTask(void *p)
 {
-	TickType_t xLastWakeTime;
+	for (;;)
+	{
+		// enqueue menu without blocking
+		xQueueSend(uartQueue, &menu, (TickType_t)0);
 
+		// block until notified to enqueue menu again
+		xTaskNotifyWait(0, 0, NULL, portMAX_DELAY);
+	}
+}
+
+// Transmits enqueued data to UART
+void uartWriteTask(void *p)
+{
+	char rxBuff[uartQueueItemSize];
+
+	for (;;)
+	{
+		// check queue is not empty
+		if (uartQueue != 0)
+		{
+			if (xQueueReceive(uartQueue, (void *)rxBuff, (TickType_t)5))
+			{
+				UART_TransmitString((volatile uint32_t *)USART2, rxBuff);
+				vTaskDelay(1000);
+			}
+		}
+	}
+}
+// Receives user command
+void rxCmdTask(void *p)
+{
+	uint8_t newCmd;
+
+	for (;;)
+	{
+		// Wait for notification
+		xTaskNotifyWait(0, 0, NULL, portMAX_DELAY);
+
+		// critical section, disable interrupts
+		taskENTER_CRITICAL();
+
+		// parse buffer for number
+		uint8_t pos = 0;
+		while (cmdBuffer[pos] == '\r' || cmdBuffer[pos] == '\n')
+		{
+			pos++;
+		}
+
+		// get command code
+		newCmd = getCommandCode(&cmdBuffer[pos]);
+
+		// re-enable interrupts
+		taskEXIT_CRITICAL();
+
+		// add command to queue
+		xQueueSend(cmdQueue, &newCmd, (TickType_t)0);
+
+		// force context switch
+		portYIELD();
+	}
+}
+
+// Receives user command
+void processCmdTask(void *p)
+{
+	int newCmd;
+	char rxBuff[1];
+
+	for (;;)
+	{
+		// check queue is not empty
+		if (cmdQueue != 0)
+		{
+			// if there's a command queued
+			if (xQueueReceive(cmdQueue, (void *)rxBuff, portMAX_DELAY))
+			{
+				newCmd = rxBuff[0];
+				switch (newCmd)
+				{
+				case LED_ON_CMD:
+					ledOnCmd();
+					break;
+				case LED_OFF_CMD:
+					ledOffCmd();
+					break;
+				case LED_BLINK_ON_CMD:
+					xTaskCreate(ledBlinkOnTask, "LED", configMINIMAL_STACK_SIZE, (void *)NULL, tskIDLE_PRIORITY, &ledBlinkOnTaskHandle);
+					char blinkMsg[] = "\nLED blink started.\r\n";
+					xQueueSend(uartQueue, &blinkMsg, (TickType_t)0);
+					break;
+				case LED_BLINK_OFF_CMD:
+					ledBlinkTaskSuspend();
+					break;
+				case LED_LIGHT_SHOW_ON_CMD:
+					xTaskCreate(ledLightShowTask, "LED", configMINIMAL_STACK_SIZE, (void *)NULL, tskIDLE_PRIORITY, &ledLightShowTaskHandle);
+					char showMsg[] = "\r\nLED light show started.\r\n";
+					xQueueSend(uartQueue, &showMsg, (TickType_t)0);
+					break;
+				case LED_LIGHT_SHOW_OFF_CMD:
+					ledLightShowTaskSuspend();
+					break;
+				default:
+					printErrorMessage();
+					break;
+				}
+			}
+		}
+	}
+}
+
+// Task that blinks LED
+void ledBlinkOnTask(void *p)
+{
 	// Initialise the xLastWakeTime variable with the current time.
-	xLastWakeTime = xTaskGetTickCount();
+	TickType_t xLastWakeTime = xTaskGetTickCount();
+
 	for (;;)
 	{
 		vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(100));
 		// GPIO_Toggle(&GPIOD->ODR, GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15); // Toggle LEDs
-		GPIO_Toggle(&GPIOD->ODR, GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15); // Toggle LEDs
+		GPIO_Toggle(&GPIOD->ODR, GPIO_PIN_12); // Toggle LEDs
 	}
 }
 
-void uartTaskPolling(void *p)
+// Task that blinks LED
+void ledLightShowTask(void *p)
 {
-	UART_TransmitString(USART2, "Hello!\r\n");
-	while(1)
+	// Initialise the xLastWakeTime variable with the current time.
+	TickType_t xLastWakeTime = xTaskGetTickCount();
+
+	for (;;)
 	{
-		char c = UART_Receive(USART2);
-		UART_Transmit(USART2, c);
-
+		GPIO_Toggle(&GPIOD->ODR, GPIO_PIN_12); // Toggle LEDs
+		vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(100));
+		GPIO_Toggle(&GPIOD->ODR, GPIO_PIN_12); // Toggle LEDs
+		GPIO_Toggle(&GPIOD->ODR, GPIO_PIN_13); // Toggle LEDs
+		vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(100));
+		GPIO_Toggle(&GPIOD->ODR, GPIO_PIN_13); // Toggle LEDs
+		GPIO_Toggle(&GPIOD->ODR, GPIO_PIN_14); // Toggle LEDs
+		vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(100));
+		GPIO_Toggle(&GPIOD->ODR, GPIO_PIN_14); // Toggle LEDs
+		GPIO_Toggle(&GPIOD->ODR, GPIO_PIN_15); // Toggle LEDs
+		vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(100));
+		GPIO_Toggle(&GPIOD->ODR, GPIO_PIN_15); // Toggle LEDs
 	}
-
 }
 
-void uartTask(void *p)
+void ledOnCmd(void)
 {
-	UART_TransmitString(USART2, "uartTask running!");
-	const TickType_t xBlockTime = pdMS_TO_TICKS(100);
-	uint32_t ulNotifiedValue;
-	// for (;;)
-	while(1)
+	GPIO_Set(&GPIOD->ODR, GPIO_PIN_12);
+	char msg[] = "\nLED turned on.\r\n";
+	xQueueSend(uartQueue, &msg, (TickType_t)0);
+}
+
+void ledOffCmd(void)
+{
+	GPIO_Reset(&GPIOD->ODR, GPIO_PIN_12);
+	char msg[] = "\nLED turned off.\r\n";
+	xQueueSend(uartQueue, &msg, (TickType_t)0);
+}
+
+void ledBlinkTaskSuspend(void)
+{
+	// suspend task (if running)
+	if (ledBlinkOnTaskHandle != NULL)
 	{
-		// vTaskSuspend(NULL);
-		// GPIO_Toggle(&GPIOD->ODR, GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15); // Toggle LEDs
-		// UART_TransmitString(USART2, "uartTask running!");
-		ulNotifiedValue = ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-		if (ulNotifiedValue)
-		{
-			GPIO_Toggle(&GPIOD->ODR, GPIO_PIN_12);
-			// UART_Transmit(USART2, "!");
-			// Handle UART RX
-			if (USART2->SR & USART_SR_RXNE)
-			{
-				// char c = UART_Receive(USART2);
-				// UART_Transmit(USART2, c);
-			}
-			// // Handle UART TX
-			// if (USART2->SR & USART_SR_TXE)
-			// {
-			// }
-		}
-		else
-		{
-		}
+		vTaskSuspend(ledBlinkOnTaskHandle);
+
+		// turn leds off
+		GPIO_Reset(&GPIOD->ODR, GPIO_PIN_12);
+
+		char msg[] = "\nLED blink stopped.\r\n";
+		xQueueSend(uartQueue, &msg, (TickType_t)0);
+	}
+}
+
+void ledLightShowTaskSuspend(void)
+{
+	// suspend task (if running)
+	if (ledLightShowTaskHandle != NULL)
+	{
+		vTaskSuspend(ledLightShowTaskHandle);
+
+		// turn leds off
+		GPIO_Reset(&GPIOD->ODR, GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15);
+
+		char msg[] = "\nLED light show stopped.\r\n";
+		xQueueSend(uartQueue, &msg, (TickType_t)0);
 	}
 }
 
@@ -133,18 +279,27 @@ void prvInitClocks(void)
 void prvInitGPIO(void)
 {
 	// init LED GPIOD Pins 12-15
-	GPIO_Init(GPIOD, 12, GPIO_MODE_OUTPUT, GPIO_SPEED_LOW);
-	GPIO_Init(GPIOD, 13, GPIO_MODE_OUTPUT, GPIO_SPEED_LOW);
-	GPIO_Init(GPIOD, 14, GPIO_MODE_OUTPUT, GPIO_SPEED_LOW);
-	GPIO_Init(GPIOD, 15, GPIO_MODE_OUTPUT, GPIO_SPEED_LOW);
+	GPIO_Init((volatile uint32_t *)GPIOD, 12, GPIO_PORT_MODE_OUTPUT, GPIO_PORT_SPEED_LOW);
+	GPIO_Init((volatile uint32_t *)GPIOD, 13, GPIO_PORT_MODE_OUTPUT, GPIO_PORT_SPEED_LOW);
+	GPIO_Init((volatile uint32_t *)GPIOD, 14, GPIO_PORT_MODE_OUTPUT, GPIO_PORT_SPEED_LOW);
+	GPIO_Init((volatile uint32_t *)GPIOD, 15, GPIO_PORT_MODE_OUTPUT, GPIO_PORT_SPEED_LOW);
+
+	// Init User button GPIOA0
+	GPIO_Init((volatile uint32_t *)GPIOA, 0, GPIO_PORT_MODE_INPUT, GPIO_PORT_SPEED_LOW);
 
 	// init UART Pins
-	GPIO_Init(GPIOA, 2, GPIO_MODE_AF, GPIO_SPEED_LOW);
-	GPIO_Init(GPIOA, 3, GPIO_MODE_AF, GPIO_SPEED_LOW);
+	GPIO_Init((volatile uint32_t *)GPIOA, 2, GPIO_PORT_MODE_AF, GPIO_PORT_SPEED_LOW);
+	GPIO_Init((volatile uint32_t *)GPIOA, 3, GPIO_PORT_MODE_AF, GPIO_PORT_SPEED_LOW);
 
 	// Set Alternate function low register for pins 2,3
 	GPIO_SetPortAF(&GPIOA->AFR[0], 7, 2);
 	GPIO_SetPortAF(&GPIOA->AFR[0], 7, 3);
+
+	// Enable interrupts on PA0
+	SYSCFG->EXTICR[0] |= SYSCFG_EXTICR1_EXTI0_PA;
+	EXTI->FTSR |= (1 << 0);
+	EXTI->IMR |= (1 << 0);
+	NVIC_EnableIRQ(EXTI0_IRQn);
 }
 
 void prvSetupHardware(void)
@@ -208,7 +363,7 @@ void prvInitUART(void)
 {
 	// USART2->CR1 = 0x00;   // Clear ALL
 	// Init UART2 with 8 length word, 0 stop bits and 11520 Baud Rate
-	UART_Init(USART2, 8, 0, 11520);
+	UART_Init((volatile uint32_t *)USART2, 8, 0, 11520);
 
 	// Enable RX, TX
 	UART_EnableRX(&USART2->CR1);
@@ -225,58 +380,70 @@ void prvInitUART(void)
 
 void USART2_IRQHandler(void)
 {
-	// BaseType_t xHigherPriorityTaskWoken;
+	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
-	// UART_TransmitString(USART2, "\r\nIRQHandler!\r\n");
+	// Receive byte
+	byte = UART_Receive((volatile uint32_t *)USART2);
 
-	// // Clear interrupt
-	// // prvClearInterruptSource();
-	// // taskDISABLE_INTERRUPTS();
-	// // NVIC_ClearPendingIRQ(USART2_IRQn);
-	// // NVIC_DisableIRQ(USART2_IRQn);
+	cmdBuffer[cmdLen++] = byte & 0xFF;
 
+	// check if received byte is user pressing enter
+	if (byte == '\r')
+	{
+		// display response
+		UART_TransmitString((volatile uint32_t *)USART2, "\rYour command is: \"");
+		UART_Transmit((volatile uint32_t *)USART2, cmdBuffer[0]);
+		UART_TransmitString((volatile uint32_t *)USART2, "\".\r\n");
 
-	// xHigherPriorityTaskWoken = pdFALSE;
-	// // xHigherPriorityTaskWoken = pdTRUE;
+		// reset cmdLen
+		cmdLen = 0;
 
-	// // Unblock the task
-	// vTaskNotifyGiveFromISR(uartTask, &xHigherPriorityTaskWoken);
+		// notify cmd handling task
+		xTaskNotifyFromISR(menuDisplayTaskHandle, 0, eNoAction, &xHigherPriorityTaskWoken);
+		xTaskNotifyFromISR(rxCmdTaskHandle, 0, eNoAction, &xHigherPriorityTaskWoken);
+	}
 
-	// // xHigherPriorityTaskWoken = xTaskResumeFromISR(uartTaskHandle);
-
-	// // Force context switch
-	// portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-
-	BaseType_t rxReceived;
-	BaseType_t txReceived;
-	// Handle UART RX
-		if (USART2->SR & USART_SR_RXNE)
-		{
-			char c = UART_Receive(USART2);
-			UART_Transmit(USART2, c);
-			rxReceived = pdTRUE;
-			GPIO_Toggle(&GPIOD->ODR, GPIO_PIN_12);
-
-		}
-		// Handle UART TX
-		// if (USART2->SR & USART_SR_TXE)
-		// {
-		// 	txReceived = pdTRUE;
-
-		// }
-		portYIELD_FROM_ISR(rxReceived || txReceived);
+	if (xHigherPriorityTaskWoken)
+	{
+		taskYIELD();
+	}
 }
 
-// void SysTick_Handler(void)
-// {
-//   HAL_IncTick();
-//   HAL_SYSTICK_IRQHandler();
-// }
-/*Generate ms */
-void Delay_ms(volatile int time_ms)
+
+void EXTI0_IRQHandler (void)
 {
-	int j;
-	for (j = 0; j < time_ms * 4000; j++)
+	// clear interrupt
+	EXTI->PR |= (1<<0);
+
+	buttonPressed = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0);
+	if(buttonPressed == 0)
 	{
-	} /* excute NOP for 1ms */
+		buttonPressed_0++;
+		buttonPressed_1 = 0;
+		if(buttonPressed_0 >= BTN_DEBOUNCE)
+		{
+			buttonPressed_0 = BTN_DEBOUNCE+1;
+			statoButtonPressed = 0;
+		}
+	}
+	else{
+		buttonPressed_0 = 0;
+		buttonPressed_1++;
+		if(buttonPressed_1 >= BTN_DEBOUNCE){
+			buttonPressed_1 = BTN_DEBOUNCE+1;
+			statoButtonPressed = 1;
+		}
+	}
+	if(statoButtonPressed)
+	{
+
+	UART_Transmit((volatile uint32_t *)USART2, '1');
+	}else{
+		UART_Transmit((volatile uint32_t *)USART2, '0');
+	}
+	// 	UART_TransmitString(USART2, "YES!!!!");
+	// 	buttonPressed = 0;
+	// 	// if(GPIO_Read(GPIOA, 0))
+	// 	UART_TransmitString(USART2, GPIO_Read(GPIOA, 0));
+	// }
 }

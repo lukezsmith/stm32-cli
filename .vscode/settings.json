@@ -37,7 +37,9 @@
         "stm32f4xx_hal_uart.h": "c",
         "gpio_module.h": "c",
         "uart_module.h": "c",
-        "string_view": "c"
+        "string_view": "c",
+        "utils.h": "c",
+        "main.h": "c"
     },
-    "cortex-debug.showRTOS": false
+    "cortex-debug.showRTOS": true
 }
