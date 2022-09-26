@@ -39,10 +39,10 @@ void UART_EnableTXEIE(volatile uint32_t *uartBaseAddress)
 
 
 
-static uint16_t convertGPIOPinNumberToBit(int pinNumber)
-{
-    return 1 << (pinNumber - 1);
-}
+// static uint16_t convertGPIOPinNumberToBit(int pinNumber)
+// {
+//     return 1 << (pinNumber - 1);
+// }
 void UART_Enable(volatile uint32_t *uartBaseAddress)
 {
     *uartBaseAddress |= (1 << 13);

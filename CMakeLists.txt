@@ -131,6 +131,8 @@ if(NOT TEST_MODE)
             -Wall -Wextra -Wundef -Wshadow -Wredundant-decls
             -fno-common -ffunction-sections -fdata-sections -MD
             -Og -g3 -ggdb
+            -specs=nano.specs
+            -specs=nosys.specs
         )
 
     else()
@@ -165,6 +167,8 @@ if(NOT TEST_MODE)
             ${CPU_PARAMETERS}
             -Wall -Wextra -Wundef -Wshadow -Wredundant-decls
             -fno-common -ffunction-sections -fdata-sections -MD
+            -specs=nano.specs
+            -specs=nosys.specs
             -Og -g0
         )
     

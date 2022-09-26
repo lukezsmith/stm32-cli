@@ -1,6 +1,21 @@
+#include <string.h>
+#include <stdio.h>
+#include "FreeRTOS.h"
+#include "stm32f4xx.h"
+#include "stm32f4xx_hal_gpio.h"
+#include "stm32f4xx_hal_uart.h"
+#include "task.h"
+#include "queue.h"
+#include "utils.h"
+#include "gpio_module.h"
+#include "uart_module.h"
+#include "semphr.h"
+#include "stm32f4_discovery.h"
+#include "stm32f4_discovery_accelerometer.h"
+
 int main(void);
-static void prvSetupHardware(void);
-static void prvInitGPIO(void);
+void prvSetupHardware(void);
+void prvInitGPIO(void);
 void prvInitUART(void);
 void ledBlinkOnTask(void *p);
 void ledLightShowTask(void *p);
@@ -15,10 +30,7 @@ void ledOffCmd(void);
 void ledBlinkOnCmd(void);
 void ledBlinkTaskSuspend(void);
 void ledLightShowTaskSuspend(void);
-void printAccelerometerData(void);
-void ACCELERO_ReadAcc(void);
-
-void Delay_ms(volatile int time_ms);
+void ACCEL_Read(void);
 
 
 #define LED_ON_CMD                    1
@@ -29,4 +41,6 @@ void Delay_ms(volatile int time_ms);
 #define LED_LIGHT_SHOW_OFF_CMD        6
 #define PRINT_DATE_CMD                7
 
-#define BTN_DEBOUNCE    10
+#define butDEBOUNCE_DELAY (200 / portTICK_RATE_MS)
+
+#define UART_TRANSMIT_DELAY 750
