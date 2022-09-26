@@ -1,5 +1,5 @@
 # stm32-cli
-This is a FreeRTOS C project for the STM32F407 Discovery board that runs a number of GPIO tasks through a UART-driven command line interface. This project uses GoogleTest for unit testing.
+A FreeRTOS C project for the STM32F407 Discovery board that runs a number of GPIO tasks through a UART-driven command line interface. This project uses GoogleTest for unit testing.
 
 ![stm32-cli](images/stm32-cli.gif)
 
