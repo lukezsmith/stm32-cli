@@ -55,6 +55,8 @@ This template includes GoogleTest. The process for adding test modules is explai
 The project is ready for debugging via gdb through the `Debug` build. I usually use the [cortex-debug](https://marketplace.visualstudio.com/items?itemName=marus25.cortex-debug) Visual Studio Code extension. A configuration file for debugging with cortex-debug (with openocd, stlink) can be found at `.vscode/launch.json`. You will need to modify this file based on your debugging server/microcontroller setup.
 
 ### Demonstration
-Below is a video demonstrating the program.
+Below is a video demonstrating the program: 
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/vJsOST5cdj0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+[![Watch the video](https://img.youtube.com/vi/vJsOST5cdj0/hqdefault.jpg)](hhttps://youtube.com/watch?v=vJsOST5cdj0&feature=share&utm_source=EKLEiJECCKjOmKnC5IiRIQ)
+https://youtube.com/watch?v=vJsOST5cdj0&feature=share&utm_source=EKLEiJECCKjOmKnC5IiRIQ
+
