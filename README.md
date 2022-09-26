@@ -43,6 +43,7 @@ Once the program has been flashed to a STM32F407G discovery board, connect the U
 From there, open serial monitor at baud rate `115200`.
 
 The program's CLI will be visible (press reset button if CLI not visible):
+
 <img src="images/gui.png" width="33%">
 
 To interact simply type the number of the command and press enter, alternatively press the blue USER button to log on-board accelerometer data. A demonstration video can be found at the bottom of this readme.
