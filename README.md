@@ -56,4 +56,4 @@ The project is ready for debugging via gdb through the `Debug` build. I usually 
 ### Demonstration
 Below is a video demonstrating the program.
 
-![stm32-cli](misc/stm32-cli.gif)
+<iframe width="560" height="315" src="https://www.youtube.com/embed/vJsOST5cdj0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
