@@ -27,6 +27,7 @@ set(CMSIS_PATH ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/CMSIS)
 set(HAL_PATH ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32F4xx_HAL_Driver)
 set(RTOS_PATH ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/FreeRTOS)
 set(RTOS_PORTABLE ARM_CM4F)
+set(STM32_DISCOVERY_PATH ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32F4-Discovery)
 
 add_subdirectory(src/modules)
 
@@ -35,6 +36,7 @@ if(NOT TEST_MODE)
     #  -------- Collate Code Sources --------
     file(GLOB_RECURSE PROJECT_SOURCES "${PROJECT_DIR}/*.c")
     file(GLOB FREERTOS_SOURCES ${RTOS_PATH}/*.c)
+    file(GLOB DISCOVERY_SOURCES ${STM32_DISCOVERY_PATH}/*.c)
     #  -------- Include HAL Sources -------- 
     set(HAL_SOURCES
         ${HAL_PATH}/Src/stm32f4xx_hal_hcd.c 
@@ -69,6 +71,7 @@ if(NOT TEST_MODE)
     add_executable(${EXECUTABLE}
     ${PROJECT_SOURCES}
     ${HAL_SOURCES}
+    ${DISCOVERY_SOURCES}
     ${STARTUP_SCRIPT})
     
     #  -------- Include dependencies --------
@@ -78,7 +81,8 @@ if(NOT TEST_MODE)
     ${HAL_PATH}/Inc
     ${HAL_PATH}/Inc/Legacy
     ${CMSIS_PATH}/Device/ST/STM32F4xx/Include
-    ${CMSIS_PATH}/Include)
+    ${CMSIS_PATH}/Include
+    ${STM32_DISCOVERY_PATH}/Include)
 
     #  -------- Add FreeRTOS Lib -------- 
     add_library(FreeRTOS STATIC
@@ -117,7 +121,8 @@ if(NOT TEST_MODE)
                 -ffunction-sections 
                 -fdata-sections
                 -Wno-unused-parameter
-                --specs=nano.specs
+                -specs=nano.specs
+                -specs=nosys.specs
                 -Og -g3 -ggdb
         )
 
@@ -151,7 +156,8 @@ if(NOT TEST_MODE)
             -ffunction-sections 
             -fdata-sections
             -Wno-unused-parameter
-            --specs=nano.specs
+            -specs=nano.specs
+            -specs=nosys.specs
             -Og -g0
         )
 
@@ -168,7 +174,8 @@ if(NOT TEST_MODE)
         -T${MCU_LINKER_SCRIPT}
         ${CPU_PARAMETERS}
         -Wl,-Map=${EXECUTABLE}.map
-        --specs=nano.specs
+        -specs=nano.specs
+        -specs=nosys.specs
         -Wl,--gc-sections
         -lc)    
     

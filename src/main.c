@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdio.h>
 #include "FreeRTOS.h"
 #include "stm32f4xx.h"
 #include "stm32f4xx_hal_gpio.h"
@@ -9,6 +10,11 @@
 #include "utils.h"
 #include "gpio_module.h"
 #include "uart_module.h"
+#include "semphr.h"
+#include "stm32f4_discovery.h"
+#include "stm32f4_discovery_accelerometer.h"
+
+#define butDEBOUNCE_DELAY (200 / portTICK_RATE_MS)
 
 TaskHandle_t ledBlinkOnTaskHandle = NULL;
 TaskHandle_t ledLightShowTaskHandle = NULL;
@@ -17,6 +23,7 @@ TaskHandle_t menuDisplayTaskHandle = NULL;
 TaskHandle_t uartWriteTaskHandle = NULL;
 TaskHandle_t rxCmdTaskHandle = NULL;
 TaskHandle_t processCmdTaskHandle = NULL;
+TaskHandle_t buttonTaskHandle = NULL;
 
 QueueHandle_t uartQueue;
 QueueHandle_t cmdQueue;
@@ -25,24 +32,24 @@ uint8_t cmdBuffer[20];
 uint8_t cmdLen = 0;
 uint8_t byte = 0;
 
+char accelBuffer[300];
+
 int uartQueueItemSize = 300;
 int cmdQueueItemSize = 10;
 
-uint16_t buttonPressed = 3;
-uint16_t buttonPressed_0 = 0;
-uint16_t buttonPressed_1 = 0;
-uint16_t statoButtonPressed = 3;
+static xSemaphoreHandle xButtonSemaphore;
+const UBaseType_t xArrayIndex = 1;
 
 // Menu string to display menu to user
 char menu[] = {"\
-\r\n============ stm32-cli ============\
+\r\n============ stm32-cli =============\
 \r\nLED ON		             ----> 1\
 \r\nLED OFF		             ----> 2\
 \r\nLED BLINK ON		     ----> 3\
 \r\nLED BLINK OFF		     ----> 4\
 \r\nLED LIGHT SHOW ON	     ----> 5\
 \r\nLED LIGHT SHOW OFF	     ----> 6\
-\r\nOr, press button for IMU data.\
+\r\nOr, press button for accel. data.\
 \r\n\nType your option here: "};
 
 int main(void)
@@ -60,11 +67,13 @@ int main(void)
 	xTaskCreate(rxCmdTask, "RXCMD", configMINIMAL_STACK_SIZE, (void *)NULL, 2, &rxCmdTaskHandle);
 	xTaskCreate(processCmdTask, "PROCESSCMD", configMINIMAL_STACK_SIZE, (void *)NULL, 2, &processCmdTaskHandle);
 	xTaskCreate(uartWriteTask, "UART", configMINIMAL_STACK_SIZE, (void *)NULL, 2, &uartWriteTaskHandle);
+	xTaskCreate(vButtonTask, "Button", configMINIMAL_STACK_SIZE, (void *)NULL, 3, &buttonTaskHandle);
 
 	// start scheduler
 	vTaskStartScheduler();
 
-	for (;;);
+	for (;;)
+		;
 }
 
 // Tasks
@@ -299,6 +308,7 @@ void prvInitGPIO(void)
 	SYSCFG->EXTICR[0] |= SYSCFG_EXTICR1_EXTI0_PA;
 	EXTI->FTSR |= (1 << 0);
 	EXTI->IMR |= (1 << 0);
+	NVIC_SetPriority(EXTI0_IRQn, 8);
 	NVIC_EnableIRQ(EXTI0_IRQn);
 }
 
@@ -312,6 +322,9 @@ void prvSetupHardware(void)
 
 	// setup UART
 	prvInitUART();
+
+	// setup accelerometer
+	BSP_ACCELERO_Init();
 }
 
 void vApplicationMallocFailedHook(void)
@@ -409,41 +422,113 @@ void USART2_IRQHandler(void)
 	}
 }
 
-
-void EXTI0_IRQHandler (void)
+void EXTI0_IRQHandler(void)
 {
 	// clear interrupt
-	EXTI->PR |= (1<<0);
+	EXTI->PR |= (1 << 0);
 
-	buttonPressed = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0);
-	if(buttonPressed == 0)
+	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+	/* 'Give' the semaphore to unblock the button task. */
+	xSemaphoreGiveFromISR(xButtonSemaphore, &xHigherPriorityTaskWoken);
+
+	/* If giving the semaphore unblocked a task, and the unblocked task has a
+	priority that is higher than the currently running task, then
+	sHigherPriorityTaskWoken will have been set to pdTRUE.  Passing a pdTRUE
+	value to portYIELD_FROM_ISR() will cause this interrupt to return directly
+	to the higher priority unblocked task. */
+	// xTaskNotifyFromISR(menuDisplayTaskHandle, 0, eNoAction, &xHigherPriorityTaskWoken);
+	// xTaskNotifyFromISR(rxCmdTaskHandle, 0, eNoAction, &xHigherPriorityTaskWoken);
+	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+}
+
+void vButtonTask(void *p)
+{
+	/* Ensure the semaphore is created before it gets used. */
+	vSemaphoreCreateBinary(xButtonSemaphore);
+	// Take semaphore immediately after creation so it is not available before interrupt
+	xSemaphoreTake(xButtonSemaphore, 0);
+
+	uint32_t ulNotificationValue;
+	const TickType_t xMaxBlockTime = pdMS_TO_TICKS(200);
+
+	char accelData[300];
+	for (;;)
 	{
-		buttonPressed_0++;
-		buttonPressed_1 = 0;
-		if(buttonPressed_0 >= BTN_DEBOUNCE)
+		// ulNotificationValue = ulTaskNotifyTakeIndexed( xArrayIndex,
+		// 											pdTRUE,
+		// 											xMaxBlockTime );
+		// if( ulNotificationValue == 1 )
+		// {
+		// 	UART_TransmitString(USART2, "Button pressed!");
+		// }
+		// else{
+		// 	UART_TransmitString(USART2, "Button not pressed!");
+		// }
+		// xTaskNotifyWait(0, 0, NULL, portMAX_DELAY);
+		// UART_TransmitString(USART2, "Button pressed!");
+
+		// UART_TransmitString(USART2, "Waiting!");
+		/* Block on the semaphore to wait for an interrupt event.  The semaphore
+		is 'given' from vButtonISRHandler() below.  Using portMAX_DELAY as the
+		block time will cause the task to block indefinitely provided
+		INCLUDE_vTaskSuspend is set to 1 in FreeRTOSConfig.h. */
+		xSemaphoreTake(xButtonSemaphore, portMAX_DELAY);
+
+		/* The button must have been pushed for this line to be executed.
+		Simply toggle the LED. */
+		// butLED1 = !butLED1;
+		// UART_TransmitString(USART2, "Button pressed!");
+		// vTaskDelay( butDEBOUNCE_DELAY );
+		// NVIC_DisableIRQ(USART2_IRQn);
+		for (int i = 0; i < 30; i++)
 		{
-			buttonPressed_0 = BTN_DEBOUNCE+1;
-			statoButtonPressed = 0;
+			// UART_TransmitString(USART2, "\r\naccel data here....\r\n");
+			ACCELERO_ReadAcc();
+			// Delay_ms(100);
+			vTaskDelay((TickType_t) 100);
+			// delay
 		}
-	}
-	else{
-		buttonPressed_0 = 0;
-		buttonPressed_1++;
-		if(buttonPressed_1 >= BTN_DEBOUNCE){
-			buttonPressed_1 = BTN_DEBOUNCE+1;
-			statoButtonPressed = 1;
-		}
-	}
-	if(statoButtonPressed)
-	{
 
-	UART_Transmit((volatile uint32_t *)USART2, '1');
-	}else{
-		UART_Transmit((volatile uint32_t *)USART2, '0');
+		/* Wait a short time then clear any pending button pushes as a crude
+		method of debouncing the switch.  xSemaphoreTake() uses a block time of
+		zero this time so it returns immediately rather than waiting for the
+		interrupt to occur. */
+		vTaskDelay(butDEBOUNCE_DELAY);
+		xSemaphoreTake(xButtonSemaphore, 0);
+		// NVIC_EnableIRQ(USART2_IRQn);
+
+		xTaskNotify(menuDisplayTaskHandle, 0, eNoAction);
+		// xTaskNotify(rxCmdTaskHandle, 0, eNoAction);
+		// taskYIELD();
 	}
-	// 	UART_TransmitString(USART2, "YES!!!!");
-	// 	buttonPressed = 0;
-	// 	// if(GPIO_Read(GPIOA, 0))
-	// 	UART_TransmitString(USART2, GPIO_Read(GPIOA, 0));
-	// }
+}
+
+void ACCELERO_ReadAcc(void)
+{
+	/* Accelerometer variables */
+	int16_t buffer[3] = {0};
+	int16_t xval, yval, zval = 0x00;
+
+	/* Read Acceleration */
+	BSP_ACCELERO_GetXYZ(buffer);
+
+	xval = buffer[0];
+	yval = buffer[1];
+	zval = buffer[2];
+
+	sprintf(accelBuffer, "\r\nX: %d, Y: %d, Z: %d\r\n", xval, yval, zval);
+	UART_TransmitString(USART2, &accelBuffer);
+	// free(printBuffer);
+	// return printBuffer;
+
+}
+
+/*Generate ms */
+void Delay_ms(volatile int time_ms)
+{
+	int j;
+	for (j = 0; j < time_ms * 4000; j++)
+	{
+	} /* excute NOP for 1ms */
 }

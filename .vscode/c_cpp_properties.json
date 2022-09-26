@@ -18,7 +18,10 @@
                 "${workspaceFolder}/test/mocks",
                 "${workspaceFolder}/src/modules/gpio_module",
                 "${workspaceFolder}/Drivers/CMSIS/RTOS/Template",
-                "${workspaceFolder}/include/utils"
+                "${workspaceFolder}/include/utils",
+                "${workspaceFolder}/Drivers/STM32F401-Discovery",
+                "${workspaceFolder}/Drivers/STM32F401-Discovery/Include",
+                "${workspaceFolder}/Drivers/STM32F4-Discovery/Include"
             ],
             "defines": [
                 "STM32F407xx",

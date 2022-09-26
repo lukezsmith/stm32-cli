@@ -9,11 +9,16 @@ void uartWriteTask(void *p);
 void menuDisplayTask(void *p);
 void rxCmdTask(void *p);
 void processCmdTask(void *p);
+void vButtonTask(void *p);
 void ledOnCmd(void);
 void ledOffCmd(void);
 void ledBlinkOnCmd(void);
 void ledBlinkTaskSuspend(void);
 void ledLightShowTaskSuspend(void);
+void printAccelerometerData(void);
+void ACCELERO_ReadAcc(void);
+
+void Delay_ms(volatile int time_ms);
 
 
 #define LED_ON_CMD                    1
