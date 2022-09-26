@@ -58,5 +58,6 @@ The project is ready for debugging via gdb through the `Debug` build. I usually 
 Below is a video demonstrating the program: 
 
 [![Watch the video](https://img.youtube.com/vi/vJsOST5cdj0/hqdefault.jpg)](hhttps://youtube.com/watch?v=vJsOST5cdj0&feature=share&utm_source=EKLEiJECCKjOmKnC5IiRIQ)
+
 https://youtube.com/watch?v=vJsOST5cdj0&feature=share&utm_source=EKLEiJECCKjOmKnC5IiRIQ
 
