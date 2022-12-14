@@ -3,8 +3,8 @@
 TARGET := main
 TEST_MODE ?= FALSE
 BUILD_TYPE ?= Debug
-CMAKE_PATH := /opt/local/bin/cmake
-CTEST_PATH := /opt/local/bin/ctest
+CMAKE_PATH := /usr/bin/cmake
+CTEST_PATH := /usr/bin/ctest
 
 ifeq ($(TEST_MODE), TRUE)
 	BUILD_DIR := build/test
